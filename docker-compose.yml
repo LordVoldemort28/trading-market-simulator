@@ -1,0 +1,30 @@
+version: "3.8"
+services:
+    mongodb:
+        image: mongo:latest
+        restart: always
+        volumes:
+            - ./.data-db:/data/db
+        environment:
+            MONGO_INITDB_ROOT_USERNAME: root
+            MONGO_INITDB_ROOT_PASSWORD: password
+            MONGO_INITDB_DATABASE: market
+        ports:
+            - 27017:27017
+    swagger-ui:
+        image: swaggerapi/swagger-ui
+        container_name: swagger-ui
+        ports:
+            - "8080:8080"
+    market_app:
+        container_name: "market-app"
+        build: .
+        restart: always
+        command: python manage.py runserver 0.0.0.0:8000
+        ports:
+            - "8000:8000"
+        links:
+            - mongodb
+            - swagger-ui
+volumes:
+    data-db:
