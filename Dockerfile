@@ -5,9 +5,9 @@ RUN set -o errexit -o nounset \
 	&& echo "Installing dependencies" \
 	&& apk update \
 	&& apk add --no-cache \
-		bash \
-        zsh \
-		git
+	bash \
+	zsh \
+	git
 
 # set work directory
 WORKDIR /usr/src/
@@ -20,7 +20,7 @@ ENV PYTHONUNBUFFERED 1
 RUN pip install --upgrade pip
 COPY ./requirements.txt .
 RUN pip install -r requirements.txt
-RUN pip install git+https://github.com/dyn4mik3/OrderBook.git
+RUN pip install git+https://github.com/LordVoldemort28/OrderBook.git
 
 # copy project
 COPY . .
