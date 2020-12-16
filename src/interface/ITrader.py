@@ -1,6 +1,5 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
-import uuid
 
 
 class ITrader(ABC):
@@ -9,14 +8,14 @@ class ITrader(ABC):
     """
 
     @abstractmethod
-    def notify_partial_buy_order_execution(self, id: uuid, shares: int, price: int) -> None:
+    def notify_partial_buy_order_execution(self, id: str, shares: int, price: int) -> None:
         """
         Receive notification when partial buy order excute
         """
         pass
 
     @abstractmethod
-    def notify_partial_sell_order_execution(self, id: uuid, shares: int, price: int) -> None:
+    def notify_partial_sell_order_execution(self, id: str, shares: int, price: int) -> None:
         """
         Receive notification when partial sell order excute
         """

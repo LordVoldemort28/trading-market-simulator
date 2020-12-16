@@ -1,0 +1,35 @@
+No transaction condition
+	A = The max price of buy side
+	B = The min price of sell side
+	A < B
+
+Transaction condition 
+	A >= B 
+
+	C = The buy order that might get sold
+	D = The sell order that might get bought
+
+	while no transaction condition:
+		C  = buy orders which are <= B
+		D  = sell orders which are >= A
+
+		E = Oldest order in C
+		F = Oldest order in D
+
+		Now E and F will transact 
+			if E.share > F.share
+			if E.share < F.share
+			if E.share == F.share 
+
+Example of transaction condition 
+
+	  Buy            Sell
+----------------------------------------
+	9 10 11 12       13 14 15 
+
+
+Example of no transaction condition 
+
+	  Buy            Sell
+---------------------------------------
+	10 11 12       13 14 15 

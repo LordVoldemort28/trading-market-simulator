@@ -6,7 +6,7 @@ from src.models.Order import Order, BuyOrder, SellOrder
 from src.utils import Time
 
 
-class OrderBook():
+class OrderBook(ITrader):
 
     def __init__(self):
         self.buy: dict = SortedDict()
@@ -63,9 +63,7 @@ class OrderBook():
         order_id = str(uuid.uuid1())[:8]
         order = BuyOrder(originator, shares, price) if order_type == 'buy' else SellOrder(
             originator, shares, price)
-        self.order_map[order_id] = order
         self.__add_order(order_id, order_type, order)
-        self.__process_order(order_type, order_id)
         return order_id
 
     def cancel_order(self, id: str) -> None:
@@ -116,7 +114,22 @@ class OrderBook():
             self.__remove_order(order_id)
         return
 
+    def notify_partial_buy_order_execution(self, id: str, order: Order) -> None:
+        """
+        Override receive notification when partial buy order excute
+        """
+        print('{}, Your {} order(s) has been fulfilled'.format(
+            id, order.share))
+
+    def notify_partial_sell_order_execution(self, id: str, order: Order) -> None:
+        """
+        Override receive notification when partial sell order excute
+        """
+        print('{}, Your {} order(s) has been sold'.format(
+            id, order.share))
+
     def __add_order(self, id: str, order_type: str, order: Order) -> None:
+        self.order_map[id] = order
         if order.price in self.orders[order_type].keys():
             self.orders[order_type][order.price][id] = order
         else:
