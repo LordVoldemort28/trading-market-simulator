@@ -1,7 +1,7 @@
 import uuid
 from sortedcontainers import SortedDict
 from collections import OrderedDict
-from src.interface import ITrader
+from src.interface.ITrader import ITrader
 from src.models.Order import Order, BuyOrder, SellOrder
 from src.utils import Time
 
@@ -78,64 +78,83 @@ class OrderBook(ITrader):
     def track_order(self, id: str) -> None:
         print('Order ID: {}\n{}'.format(str(id), self.order_map[id].info))
 
-    def __process_order(self, order_type: str, order_id: str) -> None:
+    def process_orders(self) -> None:
 
-        order = self.order_map[order_id]
-        op_order_type = 'buy' if order_type == 'sell' else 'sell'
-        match_prices = self.__get_match_prices(order_type, order.price)
+        while self.__transaction_condition():
+            max_buy, min_sell = max(self.buy.keys()), min(self.sell.keys())
+            buy_prices = list(filter(lambda price: price >= min_sell, list(reversed(self.buy))))
+            sell_prices = list(filter(lambda price: price <= max_buy, list(self.sell)))
 
+            buy_price = buy_prices.pop(0)
+            sell_price = sell_prices.pop(0)
+
+            buy_order_id = list(self.buy[buy_price].keys()).pop(0)
+            sell_order_id = list(self.sell[sell_price].keys()).pop(0)
+            self.__transact_order(buy_order_id, sell_order_id)
+
+    def __transaction_condition(self) -> bool:
+
+        if len(self.buy.keys()) == 0 or len(self.sell.keys()) == 0:
+            return False
+
+        max_buy, min_sell = max(self.buy.keys()), min(self.sell.keys())
+        return max_buy >= min_sell
+
+    def __transact_order(self, buy_order_id: str, sell_order_id: str) -> None:
         orders_to_remove = set()
-        while match_prices and order.share > 0:
-            match_price = match_prices.pop(0)
-            for match_order_id, match_order in self.orders[op_order_type][match_price].items():
-                if order.share > 0:
-                    if match_order.share > order.share:
-                        self.orders[op_order_type][match_price][match_order_id].resize_share(
-                            order.share)
-                        order.resize_share(order.share)
-                        orders_to_remove.add(order_id)
-                    elif match_order.share == order.share:
-                        order.resize_share(order.share)
-                        self.orders[op_order_type][match_price][match_order_id].resize_share(
-                            match_order.share)
-                        orders_to_remove.add(order_id)
-                        orders_to_remove.add(match_order_id)
-                    elif order.share > match_order.share:
-                        order.resize_share(match_order.share)
-                        self.orders[op_order_type][match_price][match_order_id].resize_share(
-                            match_order.share)
-                        orders_to_remove.add(match_order_id)
-                    else:
-                        raise "Error in processing order"
-                else:
-                    break
+        buy_order = self.order_map[buy_order_id]
+        sell_order = self.order_map[sell_order_id]
+
+        if buy_order.share > sell_order.share:
+            # Notify trader
+            self.notify_partial_buy_order_execution(buy_order_id, sell_order.share, sell_order.price)
+            self.notify_partial_sell_order_execution(sell_order_id, sell_order.share, buy_order.price)
+
+            # Resize share size
+            self.buy[buy_order.price][buy_order_id].resize_share(sell_order.share)
+            self.sell[sell_order.price][sell_order_id].resize_share(sell_order.share)
+            orders_to_remove.add(sell_order_id)
+        elif buy_order.share == sell_order.share:
+            # Notify trader
+            self.notify_partial_buy_order_execution(buy_order_id, buy_order.share, sell_order.price)
+            self.notify_partial_sell_order_execution(sell_order_id, sell_order.share, buy_order.price)
+
+            # Resize share size
+            self.sell[sell_order.price][sell_order_id].resize_share(sell_order.share)
+            self.buy[buy_order.price][buy_order_id].resize_share(buy_order.share)
+            orders_to_remove.add(sell_order_id)
+            orders_to_remove.add(buy_order_id)
+        elif buy_order.share < sell_order.share:
+            # Notify trader
+            self.notify_partial_buy_order_execution(buy_order_id, buy_order.share, sell_order.price)
+            self.notify_partial_sell_order_execution(sell_order_id, buy_order.share, buy_order.price)
+
+            # Resize share size
+            self.sell[sell_order.price][sell_order_id].resize_share(buy_order.share)
+            self.buy[buy_order.price][buy_order_id].resize_share(buy_order.share)
+            orders_to_remove.add(buy_order_id)
+        else:
+            raise "Error in processing order"
         # Removing orders after trade to fix mutation error
         for order_id in orders_to_remove:
             self.__remove_order(order_id)
-        return
-
-    def notify_partial_buy_order_execution(self, id: str, order: Order) -> None:
-        """
-        Override receive notification when partial buy order excute
-        """
-        print('{}, Your {} order(s) has been fulfilled'.format(
-            id, order.share))
-
-    def notify_partial_sell_order_execution(self, id: str, order: Order) -> None:
-        """
-        Override receive notification when partial sell order excute
-        """
-        print('{}, Your {} order(s) has been sold'.format(
-            id, order.share))
 
     def __add_order(self, id: str, order_type: str, order: Order) -> None:
+
+        # Add order in order map
         self.order_map[id] = order
+
+        # Add order in sell and buy book
         if order.price in self.orders[order_type].keys():
             self.orders[order_type][order.price][id] = order
         else:
             self.orders[order_type][order.price] = OrderedDict({id: order})
 
     def __remove_order(self, id: str) -> None:
+
+        if id not in self.order_map.keys():
+            print('Invalid order ID: {}'.format(id))
+            return
 
         # Remove valid order from order map
         order = self.order_map.pop(id)
@@ -151,15 +170,16 @@ class OrderBook(ITrader):
     def __get_order_type(self, order: Order) -> str:
         return 'buy' if isinstance(order, BuyOrder) else 'sell'
 
-    def __get_orders(self, order_type: str, price: float) -> OrderedDict:
-        return self.orders[order_type][price]
+    def notify_partial_buy_order_execution(self, id: str, shares: int, price: int) -> None:
+        """
+        Override receive notification when partial buy order excute
+        """
+        print('{}, Your {} order(s) has been bought @ ${}'.format(
+            id, shares, price))
 
-    def __get_match_prices(self, order_type: str, price: float):
-        if order_type == 'buy':
-            # Return all prices in sell side that are equal or less than buying price
-            return [sell for sell in self.sell.keys() if sell <= price]
-        elif order_type == 'sell':
-            # Return all prices in buy side that are equal or more than selling price
-            return [buy for buy in self.buy.keys() if buy >= price]
-        else:
-            return []
+    def notify_partial_sell_order_execution(self, id: str, shares: int, price: int) -> None:
+        """
+        Override receive notification when partial sell order excute
+        """
+        print('{}, Your {} order(s) has been sold @ ${}'.format(
+            id, shares, price))

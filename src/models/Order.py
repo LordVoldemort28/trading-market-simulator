@@ -1,4 +1,4 @@
-from src.interface import ITrader
+from src.interface.ITrader import ITrader
 
 
 class Order:
@@ -7,7 +7,8 @@ class Order:
         self.share = share
         self.price = price
         self.orginator = orginator
-
+    def resize_share(self, place_order: int):
+        self.share -= place_order
 
 class BuyOrder(Order):
 
@@ -17,12 +18,6 @@ class BuyOrder(Order):
                     Share: {}\n \
                     Price: ${:.4f}'.format('Buy', self.share, self.price)
 
-    def resize_share(self, place_order: int):
-        print('{}, Your {} order(s) has been fulfilled'.format(
-            self.orginator, place_order))
-        self.share -= place_order
-
-
 class SellOrder(Order):
 
     def __init__(self, orginator: ITrader, share: int, price: float):
@@ -30,8 +25,3 @@ class SellOrder(Order):
         self.info = 'Order Type: {}\n \
                     Share: {}\n \
                     Price: ${:.4f}'.format('Sell', self.share, self.price)
-
-    def resize_share(self, place_order: int):
-        print('{}, Your {} order(s) has been sold'.format(
-            self.orginator, place_order))
-        self.share -= place_order
