@@ -1,12 +1,12 @@
 import uuid
 from sortedcontainers import SortedDict
 from collections import OrderedDict
-from src.interface.ITrader import ITrader
+from src.models.Trader import Trader
 from src.models.Order import Order, BuyOrder, SellOrder
 from src.utils import Time
 
 
-class OrderBook(ITrader):
+class OrderBook():
 
     def __init__(self):
         self.buy: dict = SortedDict()
@@ -21,7 +21,7 @@ class OrderBook(ITrader):
         print("Order book initiated at {}".format(Time.get_current_time()))
 
     def submit_market_order(self,
-                            originator: ITrader,
+                            originator: Trader,
                             order_type: str,
                             shares: int,
                             price: float) -> str:
@@ -75,8 +75,10 @@ class OrderBook(ITrader):
         self.__remove_order(id)
         print('Order ID: {} is cancelled'.format(id))
 
-    def track_order(self, id: str) -> None:
-        print('Order ID: {}\n{}'.format(str(id), self.order_map[id].info))
+    def track_order(self, id: str) -> str:
+        if id not in self.order_map.keys():
+            return 'Order doesn\'t exist or its completed' 
+        return 'Order ID: {}\n{}'.format(str(id), str(self.order_map[id]))
 
     def process_orders(self) -> None:
 
@@ -94,7 +96,7 @@ class OrderBook(ITrader):
 
     def __transaction_condition(self) -> bool:
 
-        if len(self.buy.keys()) == 0 or len(self.sell.keys()) == 0:
+        if len(self.buy) == 0 or len(self.sell) == 0:
             return False
 
         max_buy, min_sell = max(self.buy.keys()), min(self.sell.keys())
@@ -106,32 +108,20 @@ class OrderBook(ITrader):
         sell_order = self.order_map[sell_order_id]
 
         if buy_order.share > sell_order.share:
-            # Notify trader
-            self.notify_partial_buy_order_execution(buy_order_id, sell_order.share, sell_order.price)
-            self.notify_partial_sell_order_execution(sell_order_id, sell_order.share, buy_order.price)
-
-            # Resize share size
-            self.buy[buy_order.price][buy_order_id].resize_share(sell_order.share)
-            self.sell[sell_order.price][sell_order_id].resize_share(sell_order.share)
+            # Resize shares
+            self.buy[buy_order.price][buy_order_id].resize_share(buy_order_id, sell_order.share, sell_order.price)
+            self.sell[sell_order.price][sell_order_id].resize_share(sell_order_id, sell_order.share, buy_order.price)
             orders_to_remove.add(sell_order_id)
         elif buy_order.share == sell_order.share:
-            # Notify trader
-            self.notify_partial_buy_order_execution(buy_order_id, buy_order.share, sell_order.price)
-            self.notify_partial_sell_order_execution(sell_order_id, sell_order.share, buy_order.price)
-
-            # Resize share size
-            self.sell[sell_order.price][sell_order_id].resize_share(sell_order.share)
-            self.buy[buy_order.price][buy_order_id].resize_share(buy_order.share)
+            # Resize shares
+            self.sell[sell_order.price][sell_order_id].resize_share(sell_order_id, sell_order.share, buy_order.price)
+            self.buy[buy_order.price][buy_order_id].resize_share(buy_order_id, buy_order.share, sell_order.price)
             orders_to_remove.add(sell_order_id)
             orders_to_remove.add(buy_order_id)
         elif buy_order.share < sell_order.share:
-            # Notify trader
-            self.notify_partial_buy_order_execution(buy_order_id, buy_order.share, sell_order.price)
-            self.notify_partial_sell_order_execution(sell_order_id, buy_order.share, buy_order.price)
-
-            # Resize share size
-            self.sell[sell_order.price][sell_order_id].resize_share(buy_order.share)
-            self.buy[buy_order.price][buy_order_id].resize_share(buy_order.share)
+            # Resize shares
+            self.sell[sell_order.price][sell_order_id].resize_share(buy_order_id, buy_order.share, sell_order.price)
+            self.buy[buy_order.price][buy_order_id].resize_share(sell_order_id, buy_order.share, buy_order.price)
             orders_to_remove.add(buy_order_id)
         else:
             raise "Error in processing order"
@@ -169,17 +159,3 @@ class OrderBook(ITrader):
 
     def __get_order_type(self, order: Order) -> str:
         return 'buy' if isinstance(order, BuyOrder) else 'sell'
-
-    def notify_partial_buy_order_execution(self, id: str, shares: int, price: int) -> None:
-        """
-        Override receive notification when partial buy order excute
-        """
-        print('{}, Your {} order(s) has been bought @ ${}'.format(
-            id, shares, price))
-
-    def notify_partial_sell_order_execution(self, id: str, shares: int, price: int) -> None:
-        """
-        Override receive notification when partial sell order excute
-        """
-        print('{}, Your {} order(s) has been sold @ ${}'.format(
-            id, shares, price))

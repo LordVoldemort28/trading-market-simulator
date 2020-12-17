@@ -5,7 +5,7 @@ from src.interface import ITrader
 
 class MultiTraderOrderBook(OrderBook):
 
-    def process_market_order(originator: ITrader, shares: int, price: float):
+    def process_market_order(originator: ITrader, shares: int, price: float) -> None:
         """
         Process trade for multiple trader
         """
