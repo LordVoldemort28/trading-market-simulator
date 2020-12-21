@@ -1,16 +1,22 @@
-from src.models.Trader import Trader
+from src.interface.ITrader import ITrader
 
 
 class Order():
 
-    def __init__(self, orginator: Trader, share: int, price: float):
+    time_now = 1
+
+    def __init__(self, orginator: ITrader, share: int, price: float):
         self.share = share
         self.price = price
         self.orginator = orginator
+        self.time = Order.time_now
+
+        # Increment order time
+        Order.time_now += 1
 
 class BuyOrder(Order):
 
-    def __init__(self, orginator: Trader, share: int, price: float):
+    def __init__(self, orginator: ITrader, share: int, price: float):
         super().__init__(orginator, share, price)
 
     def resize_share(self, order_id: str, taken_share: int, price: float):
@@ -22,7 +28,7 @@ class BuyOrder(Order):
 
 class SellOrder(Order):
 
-    def __init__(self, orginator: Trader, share: int, price: float):
+    def __init__(self, orginator: ITrader, share: int, price: float):
         super().__init__(orginator, share, price)
 
     def resize_share(self, order_id: str, taken_share: int, price: float):

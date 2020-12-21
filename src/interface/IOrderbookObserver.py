@@ -13,4 +13,4 @@ class IOrderbookObserver(ABC):
         """
         Receive notification when any changes happen in order book
         """
-        pass
+        raise NotImplementedError

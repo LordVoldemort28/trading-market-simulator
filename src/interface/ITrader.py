@@ -12,11 +12,11 @@ class ITrader(ABC):
         """
         Receive notification when partial buy order excute
         """
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def notify_partial_sell_order_execution(self, id: str, shares: int, price: float) -> None:
         """
         Receive notification when partial sell order excute
         """
-        pass
+        raise NotImplementedError

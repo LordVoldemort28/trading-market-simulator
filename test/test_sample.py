@@ -25,8 +25,12 @@ def test_case():
     ob.submit_market_order(trader, 'sell', 5, 74)
     ob.submit_market_order(trader, 'sell', 5, 75)
 
+    # noise conditions
+    ob.submit_market_order(trader, 'buy', 5, 76)
     ob.submit_market_order(trader, 'buy', 5, 73.5)
+    ob.submit_market_order(trader, 'buy', 5, 72.5)
     ob.process_orders()
+    print('===================Test ends=================\n')
 
 def test_case_1():
     print('===================Test starts=================')
@@ -37,6 +41,7 @@ def test_case_1():
     ob = OrderBook()
     ob.submit_market_order(p1, 'buy', 2, 100)
     ob.submit_market_order(p2, 'buy', 10, 100)
+
     # noise condition
     ob.submit_market_order(p3, 'sell', 6, 100)
     ob.process_orders()

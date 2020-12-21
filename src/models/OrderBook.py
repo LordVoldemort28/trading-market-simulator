@@ -1,9 +1,10 @@
 import uuid
+import sys
 from sortedcontainers import SortedDict
 from collections import OrderedDict
-from src.models.Trader import Trader
+from src.interface.ITrader import ITrader
 from src.models.Order import Order, BuyOrder, SellOrder
-from src.utils import Time
+from src.utils import TimeUtils
 
 
 class OrderBook():
@@ -18,10 +19,10 @@ class OrderBook():
             'sell': self.sell,
         }
 
-        print("Order book initiated at {}".format(Time.get_current_time()))
+        print("Order book initiated at {}".format(TimeUtils.get_current_time()))
 
     def submit_market_order(self,
-                            originator: Trader,
+                            originator: ITrader,
                             order_type: str,
                             shares: int,
                             price: float) -> str:
@@ -77,22 +78,42 @@ class OrderBook():
 
     def track_order(self, id: str) -> str:
         if id not in self.order_map.keys():
-            return 'Order doesn\'t exist or its completed' 
+            return 'Order doesn\'t exist or its completed'
         return 'Order ID: {}\n{}'.format(str(id), str(self.order_map[id]))
 
     def process_orders(self) -> None:
 
         while self.__transaction_condition():
+
+            # Get max price on buying side and min price in selling side
             max_buy, min_sell = max(self.buy.keys()), min(self.sell.keys())
-            buy_prices = list(filter(lambda price: price >= min_sell, list(reversed(self.buy))))
+
+            # Get prices which can transact based on min sell and max buy
+            buy_prices = list(filter(lambda price: price >= min_sell, list(self.buy)))
             sell_prices = list(filter(lambda price: price <= max_buy, list(self.sell)))
 
-            buy_price = buy_prices.pop(0)
-            sell_price = sell_prices.pop(0)
+            # Pick the oldest buy and sell orders that can transact
+            buy_price = self.__get_oldest_price('buy', buy_prices)
+            sell_price = self.__get_oldest_price('sell', sell_prices)
 
+            # Perform transaction
             buy_order_id = list(self.buy[buy_price].keys()).pop(0)
             sell_order_id = list(self.sell[sell_price].keys()).pop(0)
             self.__transact_order(buy_order_id, sell_order_id)
+
+    def __get_oldest_price(self, order_type: str, prices: list) -> float:
+
+        if len(prices) <= 0:
+            return
+
+        min_value = sys.maxsize
+        min_order = None
+        for price in prices:
+            for order_id, order in self.orders[order_type][price].items():
+                if order.time < min_value:
+                    min_value = order.time
+                    min_order = order
+        return order.price
 
     def __transaction_condition(self) -> bool:
 
