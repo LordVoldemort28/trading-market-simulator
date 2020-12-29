@@ -93,27 +93,30 @@ class OrderBook():
             sell_prices = list(filter(lambda price: price <= max_buy, list(self.sell)))
 
             # Pick the oldest buy and sell orders that can transact
-            buy_price = self.__get_oldest_price('buy', buy_prices)
-            sell_price = self.__get_oldest_price('sell', sell_prices)
+            buy_order_id = self.__get_oldest_order('buy', buy_prices)
+            sell_order_id = self.__get_oldest_order('sell', sell_prices)
 
             # Perform transaction
-            buy_order_id = list(self.buy[buy_price].keys()).pop(0)
-            sell_order_id = list(self.sell[sell_price].keys()).pop(0)
             self.__transact_order(buy_order_id, sell_order_id)
 
-    def __get_oldest_price(self, order_type: str, prices: list) -> float:
+    def print_buy_sell_side(self) -> None:
+        print("Buy Side: {}".format(list(self.buy.keys())))
+        print("Sell Side: {}".format(list(self.sell.keys())))
+
+    def __get_oldest_order(self, order_type: str, prices: list) -> str:
 
         if len(prices) <= 0:
             return
 
         min_value = sys.maxsize
-        min_order = None
+        oldest_order_id = None
         for price in prices:
             for order_id, order in self.orders[order_type][price].items():
                 if order.time < min_value:
                     min_value = order.time
-                    min_order = order
-        return order.price
+                    oldest_order_id = order_id
+        #TODO: Change oldest order price to order id
+        return oldest_order_id
 
     def __transaction_condition(self) -> bool:
 
