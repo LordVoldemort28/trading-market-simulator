@@ -5,12 +5,12 @@ from src.models.Trader import Trader
 
 
 def test_orderbook_init():
-    print('===================Test starts=================')
+    print('===================Test Case 1=================')
     ob = OrderBook()
     print('===================Test ends=================\n')
 
 def test_case():
-    print('===================Test starts=================')
+    print('===================Test Case 2=================')
 
     trader = Trader('Trader')
     ob = OrderBook()
@@ -33,7 +33,7 @@ def test_case():
     print('===================Test ends=================\n')
 
 def test_case_1():
-    print('===================Test starts=================')
+    print('===================Test Case 3=================')
 
     p1 = Trader('P1')
     p2 = Trader('P2')
@@ -49,7 +49,7 @@ def test_case_1():
 
 
 def test_case_2():
-    print('===================Test starts=================')
+    print('===================Test Case 4=================')
 
     p1 = Trader('P1')
     p2 = Trader('P2')
