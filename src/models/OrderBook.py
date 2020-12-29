@@ -1,5 +1,6 @@
 import uuid
 import sys
+from abc import ABC, abstractmethod
 from sortedcontainers import SortedDict
 from collections import OrderedDict
 from src.interface.ITrader import ITrader
@@ -7,7 +8,7 @@ from src.models.Order import Order, BuyOrder, SellOrder
 from src.utils import TimeUtils
 
 
-class OrderBook():
+class OrderBook(object):
 
     def __init__(self):
         self.buy: dict = SortedDict()
@@ -19,7 +20,7 @@ class OrderBook():
             'sell': self.sell,
         }
 
-        print("Order book initiated at {}".format(TimeUtils.get_current_time()))
+        print('Order book initiated at {}'.format(TimeUtils.get_current_time()))
 
     def submit_market_order(self,
                             originator: ITrader,
@@ -65,6 +66,10 @@ class OrderBook():
         order = BuyOrder(originator, shares, price) if order_type == 'buy' else SellOrder(
             originator, shares, price)
         self.__add_order(order_id, order_type, order)
+
+        # Notify all observer
+        self.notify_allobservers('submit')
+
         return order_id
 
     def cancel_order(self, id: str) -> None:
@@ -89,8 +94,10 @@ class OrderBook():
             max_buy, min_sell = max(self.buy.keys()), min(self.sell.keys())
 
             # Get prices which can transact based on min sell and max buy
-            buy_prices = list(filter(lambda price: price >= min_sell, list(self.buy)))
-            sell_prices = list(filter(lambda price: price <= max_buy, list(self.sell)))
+            buy_prices = list(
+                filter(lambda price: price >= min_sell, list(self.buy)))
+            sell_prices = list(
+                filter(lambda price: price <= max_buy, list(self.sell)))
 
             # Pick the oldest buy and sell orders that can transact
             buy_order_id = self.__get_oldest_order('buy', buy_prices)
@@ -100,8 +107,8 @@ class OrderBook():
             self.__transact_order(buy_order_id, sell_order_id)
 
     def print_buy_sell_side(self) -> None:
-        print("Buy Side: {}".format(list(self.buy.keys())))
-        print("Sell Side: {}".format(list(self.sell.keys())))
+        print('Buy Side: {}'.format(list(self.buy.keys())))
+        print('Sell Side: {}'.format(list(self.sell.keys())))
 
     def __get_oldest_order(self, order_type: str, prices: list) -> str:
 
@@ -115,7 +122,6 @@ class OrderBook():
                 if order.time < min_value:
                     min_value = order.time
                     oldest_order_id = order_id
-        #TODO: Change oldest order price to order id
         return oldest_order_id
 
     def __transaction_condition(self) -> bool:
@@ -133,22 +139,32 @@ class OrderBook():
 
         if buy_order.share > sell_order.share:
             # Resize shares
-            self.buy[buy_order.price][buy_order_id].resize_share(buy_order_id, sell_order.share, sell_order.price)
-            self.sell[sell_order.price][sell_order_id].resize_share(sell_order_id, sell_order.share, buy_order.price)
+            self.buy[buy_order.price][buy_order_id].resize_share(
+                buy_order_id, sell_order.share, sell_order.price)
+            self.sell[sell_order.price][sell_order_id].resize_share(
+                sell_order_id, sell_order.share, buy_order.price)
             orders_to_remove.add(sell_order_id)
         elif buy_order.share == sell_order.share:
             # Resize shares
-            self.sell[sell_order.price][sell_order_id].resize_share(sell_order_id, sell_order.share, buy_order.price)
-            self.buy[buy_order.price][buy_order_id].resize_share(buy_order_id, buy_order.share, sell_order.price)
+            self.sell[sell_order.price][sell_order_id].resize_share(
+                sell_order_id, sell_order.share, buy_order.price)
+            self.buy[buy_order.price][buy_order_id].resize_share(
+                buy_order_id, buy_order.share, sell_order.price)
             orders_to_remove.add(sell_order_id)
             orders_to_remove.add(buy_order_id)
         elif buy_order.share < sell_order.share:
             # Resize shares
-            self.sell[sell_order.price][sell_order_id].resize_share(buy_order_id, buy_order.share, sell_order.price)
-            self.buy[buy_order.price][buy_order_id].resize_share(sell_order_id, buy_order.share, buy_order.price)
+            self.sell[sell_order.price][sell_order_id].resize_share(
+                buy_order_id, buy_order.share, sell_order.price)
+            self.buy[buy_order.price][buy_order_id].resize_share(
+                sell_order_id, buy_order.share, buy_order.price)
             orders_to_remove.add(buy_order_id)
         else:
-            raise "Error in processing order"
+            raise 'Error in processing order'
+
+        # Notify all observer
+        self.notify_allobservers('trade')
+
         # Removing orders after trade to fix mutation error
         for order_id in orders_to_remove:
             self.__remove_order(order_id)
@@ -183,3 +199,10 @@ class OrderBook():
 
     def __get_order_type(self, order: Order) -> str:
         return 'buy' if isinstance(order, BuyOrder) else 'sell'
+
+    @abstractmethod
+    def notify_allobservers(self, change: str) -> None:
+        """
+        Abstract method to all observer
+        """
+        pass

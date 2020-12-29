@@ -20,3 +20,10 @@ class ITrader(ABC):
         Receive notification when partial sell order excute
         """
         raise NotImplementedError
+
+    @abstractmethod
+    def time_slice(self) -> None:
+        """
+        Trader's turn to trade
+        """
+        raise NotImplementedError
