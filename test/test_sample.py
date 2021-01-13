@@ -9,6 +9,7 @@ def test_orderbook_init():
     ob = OrderBook()
     print('===================Test ends=================\n')
 
+
 def test_case():
     print('===================Test Case 2=================')
 
@@ -31,6 +32,7 @@ def test_case():
     ob.submit_market_order(trader, 'buy', 5, 72.5)
     ob.process_orders()
     print('===================Test ends=================\n')
+
 
 def test_case_1():
     print('===================Test Case 3=================')

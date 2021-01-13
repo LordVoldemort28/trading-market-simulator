@@ -1,10 +1,11 @@
-from src.models import OrderBook
+from src.models.OrderBook import OrderBook
 from src.interface.IOrderbookObserver import IOrderbookObserver
 
 
 class ObservableOrderbook(OrderBook):
 
     def __init__(self):
+        super().__init__()
         self.__observers = list()
 
     def register(self, order_observer: IOrderbookObserver) -> None:
@@ -18,7 +19,4 @@ class ObservableOrderbook(OrderBook):
         Override notify all observer
         """
         for observer in self.__observers:
-            observer.notify_change(
-                super(ObservableOrderbook, self),
-                change
-            )
+            observer.notify_change(OrderBook, change)

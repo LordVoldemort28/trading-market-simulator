@@ -72,6 +72,12 @@ class OrderBook(object):
 
         return order_id
 
+    def get_max_buy(self) -> float:
+        return max(self.buy)
+
+    def get_min_sell(self) -> float:
+        return min(self.sell)
+
     def cancel_order(self, id: str) -> None:
 
         if id not in self.order_map.keys():
